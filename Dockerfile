@@ -1,4 +1,6 @@
-FROM openjdk:8-jre-alpine
+FROM ca0abinary/docker-pentaho AS sources
+
+FROM openjdk:7-jre-alpine
 MAINTAINER Jonathan DeMarks
 # Based on work done by Wellington Marinho (https://github.com/wmarinho/docker-pentaho)
 # Note: Really, really requires Postgres 9.5, any higher version will break without an updated driver (in commented section below).
@@ -19,26 +21,7 @@ USER pentaho
 WORKDIR ${PENTAHO_HOME}/server
 
 # Get Pentaho Server
-RUN echo http://downloads.sourceforge.net/project/pentaho/Business%20Intelligence%20Server/${MAJOR_VERSION}/pentaho-server-ce-${MINOR_VERSION}.zip | xargs wget -qO- -O tmp.zip && \
-    unzip -q tmp.zip -d ${PENTAHO_HOME}/server && \
-    rm -f tmp.zip
-
-# Get MS SQL JDBC driver
-RUN echo https://download.microsoft.com/download/0/2/A/02AAE597-3865-456C-AE7F-613F99F850A8/enu/sqljdbc_6.0.8112.100_enu.tar.gz | xargs wget -qO- -O tmp.tar.gz && \
-    tar -zxf tmp.tar.gz && \
-	rm -f tmp.tar.gz && \
-	cp sqljdbc_6.0/enu/jre8/sqljdbc42.jar ${PENTAHO_SERVER}/tomcat/lib/ && \
-	rm -fr sqljdbc_6.0
-
-# Replace outdated Postgresql JDBC driver
-RUN rm ${PENTAHO_SERVER}/tomcat/lib/postgresql-9.3-1102-jdbc4.jar && \
-    echo https://jdbc.postgresql.org/download/postgresql-9.4.1212.jar | xargs wget -qO- -O ${PENTAHO_SERVER}/tomcat/lib/postgresql-9.4.1212.jar
-
-# Disable first-time startup prompt
-RUN rm ${PENTAHO_SERVER}/promptuser.sh
-
-# Disable daemon mode for Tomcat
-RUN sed -i -e 's/\(exec ".*"\) start/\1 run/' ${PENTAHO_SERVER}/tomcat/bin/startup.sh
+COPY --from=sources /opt/pentaho/server ${PENTAHO_HOME}/server
 
 # Copy scripts and fix permissions
 USER root
